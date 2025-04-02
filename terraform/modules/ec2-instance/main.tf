@@ -143,17 +143,13 @@ resource "aws_instance" "this" {
   # Add user data to install SSM agent
   user_data = <<-EOF
     #!/bin/bash
-    # Update and install required packages
-    apt-get update -y
-    apt-get install -y unzip
-
-    # Install SSM agent for Ubuntu
-    mkdir -p /tmp/ssm
-    cd /tmp/ssm
-    wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
-    dpkg -i amazon-ssm-agent.deb
+    
+    yum update -y
+    
+    systemctl status amazon-ssm-agent || systemctl start amazon-ssm-agent
     systemctl enable amazon-ssm-agent
-    systemctl start amazon-ssm-agent
+    
+    yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
   EOF
 
   tags = {
