@@ -1,0 +1,118 @@
+name: Terraform Workflow
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "terraform/**"
+      - "application/**"
+      - ".github/workflows/**"
+
+permissions:
+  id-token: write
+  contents: read
+  
+jobs:
+  terraform:
+    name: Terraform deploy
+    runs-on: ubuntu-latest
+    defaults:
+     run:
+      working-directory: ./terraform/environment
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Terraform variables
+        run: |
+          echo "TF_VAR_instance_name=${{ vars.INSTANCE_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_instance_type=${{ vars.INSTANCE_TYPE }}" >> $GITHUB_ENV
+          echo "TF_VAR_vpc_id=${{ secrets.VPC_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_subnet_id=${{ secrets.SUBNET_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_ami_id=${{ secrets.AMI_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_key_name=${{ secrets.KEY_NAME }}" >> $GITHUB_ENV
+
+      - name: Terraform init
+        run: |
+          terraform init
+
+      - name: Terraform plan
+        run: |
+          terraform plan
+
+      - name: Terraform apply
+        run: |
+          terraform apply -auto-approve
+
+  application:
+    name: App deploy
+    needs: terraform
+    runs-on: ubuntu-latest
+    defaults:
+     run:
+      working-directory: ./application
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push Docker image
+        run: |
+          docker build -t ${{ secrets.ECR_REPOSITORY }}:latest .
+          docker tag ${{ secrets.ECR_REPOSITORY }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+
+      - name: Retrieve EC2 Instance details
+        run: |
+          IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.INSTANCE_NAME }}" --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+          INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.INSTANCE_NAME }}" --query "Reservations[*].Instances[*].InstanceId" --output text)
+          echo "::add-mask::$IP"
+          echo "INSTANCE_IP=$IP" >> $GITHUB_ENV
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+
+      - name: Deploy via SSM
+        run: |
+          cat ../scripts/deploy.sh > deploy_temp.sh
+          
+          ENCODED_SCRIPT=$(base64 -w 0 deploy_temp.sh)
+          
+          aws ssm send-command \
+            --instance-ids ${{ env.INSTANCE_ID }} \
+            --document-name "AWS-RunShellScript" \
+            --parameters "{
+              \"commands\":[
+                \"echo $ENCODED_SCRIPT | base64 -d > /home/ubuntu/deploy.sh\",
+                \"chmod +x /home/ubuntu/deploy.sh\",
+                \"export AWS_DEFAULT_REGION=us-east-1\",
+                \"export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}\",
+                \"export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}\",
+                \"bash /home/ubuntu/deploy.sh\"
+              ]
+            }" \
+            --output text
