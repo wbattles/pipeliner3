@@ -140,7 +140,24 @@ resource "aws_instance" "this" {
   iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
   key_name = var.key_name
   
-  user_data = file("ec2_user_data.sh")
+  user_data = <<-EOF
+    #!/bin/bash
+
+    sudo apt-get update
+
+    sudo apt-get install docker.io -y
+    sudo systemctl start docker
+
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    sudo apt-get install -y unzip
+    unzip -o -q awscliv2.zip
+    sudo ./aws/install --update
+
+    sudo apt-get install -y snapd unzip
+    snap install amazon-ssm-agent --classic
+    systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
+    systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
+  EOF
 
   tags = {
     Name = var.instance_name
