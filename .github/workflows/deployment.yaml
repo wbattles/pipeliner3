@@ -3,7 +3,11 @@ name: Terraform Workflow
 on:
   push:
     branches:
-      - dev 
+      - main
+    paths:
+      - "terraform/**"
+      - "application/**"
+      - ".github/workflows/**"
 
 permissions:
   id-token: write
