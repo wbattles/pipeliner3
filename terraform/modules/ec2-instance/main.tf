@@ -140,17 +140,7 @@ resource "aws_instance" "this" {
   iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
   key_name = var.key_name
   
-  # Add user data to install SSM agent
-  user_data = <<-EOF
-    #!/bin/bash
-    
-    yum update -y
-    
-    systemctl status amazon-ssm-agent || systemctl start amazon-ssm-agent
-    systemctl enable amazon-ssm-agent
-    
-    yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
-  EOF
+  user_data = file("ec2_user_data.sh")
 
   tags = {
     Name = var.instance_name

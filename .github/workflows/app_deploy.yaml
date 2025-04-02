@@ -1,11 +1,8 @@
 name: App Deployment Workflow
 
 on:
-  push:
-    branches:
-      - dev
-    paths:
-      - 'application/**'
+  workflow_call:
+    
 
 permissions:
   id-token: write
@@ -42,26 +39,31 @@ jobs:
           docker tag ${{ secrets.ECR_REPOSITORY }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
 
-      - name: Retrieve EC2 Instance IP
+      - name: Retrieve EC2 Instance details
         run: |
           IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.INSTANCE_NAME }}" --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+          INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.INSTANCE_NAME }}" --query "Reservations[*].Instances[*].InstanceId" --output text)
           echo "::add-mask::$IP"
           echo "INSTANCE_IP=$IP" >> $GITHUB_ENV
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
 
       - name: Deploy via SSM
         run: |
-          # Send the deployment script to the instance
+          cat ../scripts/deploy.sh > deploy_temp.sh
+          
+          ENCODED_SCRIPT=$(base64 -w 0 deploy_temp.sh)
+          
           aws ssm send-command \
             --instance-ids ${{ env.INSTANCE_ID }} \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[
-              'cat > /home/ubuntu/deploy.sh << \"EOL\"',
-              '$(cat ../scripts/deploy.sh)',
-              'EOL',
-              'chmod +x /home/ubuntu/deploy.sh',
-              'export AWS_DEFAULT_REGION=us-east-1',
-              'export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}', 
-              'export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}',
-              'bash /home/ubuntu/deploy.sh'
-            ]" \
+            --parameters "{
+              \"commands\":[
+                \"echo $ENCODED_SCRIPT | base64 -d > /home/ubuntu/deploy.sh\",
+                \"chmod +x /home/ubuntu/deploy.sh\",
+                \"export AWS_DEFAULT_REGION=us-east-1\",
+                \"export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}\",
+                \"export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}\",
+                \"bash /home/ubuntu/deploy.sh\"
+              ]
+            }" \
             --output text
