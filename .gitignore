@@ -1,0 +1,6 @@
+*.tfvars
+venv
+__pycache__
+.terraform
+.terraform.lock.hcl
+notes.txt

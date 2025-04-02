@@ -1,0 +1,56 @@
+name: Terraform Workflow
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**/*.tf'
+
+permissions:
+  id-token: write
+  contents: read
+  
+jobs:
+  terraform:
+    name: Terraform deploy
+    runs-on: ubuntu-latest
+    defaults:
+     run:
+      working-directory: ./terraform/environment
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Terraform variables
+        run: |
+          echo "TF_VAR_instance_name=${{ vars.INSTANCE_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_instance_type=${{ vars.INSTANCE_TYPE }}" >> $GITHUB_ENV
+          echo "TF_VAR_vpc_id=${{ secrets.VPC_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_subnet_id=${{ secrets.SUBNET_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_ami_id=${{ secrets.AMI_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_key_name=${{ secrets.KEY_NAME }}" >> $GITHUB_ENV
+
+      - name: Terraform init
+        run: |
+          terraform init
+
+      - name: Terraform plan
+        run: |
+          terraform plan
+
+      - name: Terraform apply
+        run: |
+          terraform apply -auto-approve
