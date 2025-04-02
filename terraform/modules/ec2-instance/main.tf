@@ -65,7 +65,7 @@ resource "aws_iam_role" "ec2_role" {
 }
 
 resource "aws_iam_policy" "ec2_access_policy" {
-  name        = "ec2-access-policy"
+  name = "ec2-access-policy"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -91,9 +91,29 @@ resource "aws_iam_policy" "ec2_access_policy" {
         ]
         Effect   = "Allow"
         Resource = "*"
+      },
+      {
+        Action = [
+          "ssm:UpdateInstanceInformation",
+          "ssm:ListInstanceAssociations",
+          "ssm:GetDocument",
+          "ssm:DescribeDocument",
+          "ssm:GetParameter*",
+          "ssm:StartSession",
+          "ssm:DescribeParameters",
+          "ssmmessages:*"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
       }
     ]
   })
+}
+
+# Add AWS SSM Managed Policy for Amazon EC2 Role
+resource "aws_iam_role_policy_attachment" "attach_ssm_policy" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_role_policy_attachment" "attach_policy" {
@@ -119,6 +139,22 @@ resource "aws_instance" "this" {
   vpc_security_group_ids = [aws_security_group.public_traffic.id]
   iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
   key_name = var.key_name
+  
+  # Add user data to install SSM agent
+  user_data = <<-EOF
+    #!/bin/bash
+    # Update and install required packages
+    apt-get update -y
+    apt-get install -y unzip
+
+    # Install SSM agent for Ubuntu
+    mkdir -p /tmp/ssm
+    cd /tmp/ssm
+    wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
+    dpkg -i amazon-ssm-agent.deb
+    systemctl enable amazon-ssm-agent
+    systemctl start amazon-ssm-agent
+  EOF
 
   tags = {
     Name = var.instance_name

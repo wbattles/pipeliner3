@@ -3,7 +3,7 @@ name: App Deployment Workflow
 on:
   push:
     branches:
-      - main
+      - dev
     paths:
       - 'application/**'
 
@@ -48,20 +48,20 @@ jobs:
           echo "::add-mask::$IP"
           echo "INSTANCE_IP=$IP" >> $GITHUB_ENV
 
-      - name: Prepare SSH Key
+      - name: Deploy via SSM
         run: |
-          echo "${{ secrets.SSH_SECRET_KEY }}" > ssh_key.pem
-          chmod 600 ssh_key.pem
-
-      - name: Copy deployment script
-        run: |
-          scp -o StrictHostKeyChecking=no -i ssh_key.pem ../scripts/deploy.sh ubuntu@${{ env.INSTANCE_IP }}:~/deploy.sh
-
-      - name: Deploy application
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ssh_key.pem ubuntu@${{ env.INSTANCE_IP }} \
-            "chmod +x ~/deploy.sh && 
-            export AWS_DEFAULT_REGION=us-east-1 && 
-            export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }} && 
-            export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }} && 
-            bash ~/deploy.sh"
+          # Send the deployment script to the instance
+          aws ssm send-command \
+            --instance-ids ${{ env.INSTANCE_ID }} \
+            --document-name "AWS-RunShellScript" \
+            --parameters "commands=[
+              'cat > /home/ubuntu/deploy.sh << \"EOL\"',
+              '$(cat ../scripts/deploy.sh)',
+              'EOL',
+              'chmod +x /home/ubuntu/deploy.sh',
+              'export AWS_DEFAULT_REGION=us-east-1',
+              'export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}', 
+              'export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}',
+              'bash /home/ubuntu/deploy.sh'
+            ]" \
+            --output text
