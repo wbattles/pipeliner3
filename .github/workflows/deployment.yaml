@@ -97,9 +97,12 @@ jobs:
       - name: Terraform apply
         run: |
           terraform apply -auto-approve
-          echo "instance_id=$(terraform output -raw instance_id)" >> $GITHUB_OUTPUT
-    outputs:
-      instance_id: ${{ steps.terraform_apply.outputs.instance_id }}
+      
+      - name: Get Terraform outputs
+        id: terraform-outputs
+        run: |
+          INSTANCE_ID=$(terraform output -raw instance_id)
+          echo "instance_id=${INSTANCE_ID}" >> $GITHUB_OUTPUT
 
   application:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' && github.event.inputs.LAUNCH_TEMPLATE == 'ubuntu-template'
@@ -135,7 +138,8 @@ jobs:
 
       - name: Retrieve EC2 Instance details
         run: |
-          echo "INSTANCE_ID=${{ needs.terraform.outputs.instance_id }}" >> $GITHUB_ENV
+          echo "INSTANCE_ID=${{ needs.terraform.outputs.terraform-outputs.instance_id }}" >> $GITHUB_ENV
+          echo "Using EC2 instance: ${{ needs.terraform.outputs.terraform-outputs.instance_id }}"
 
       - name: Deploy via SSM
         run: |
