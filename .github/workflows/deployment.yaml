@@ -35,8 +35,6 @@ jobs:
   terraform:
     name: Terraform deploy
     runs-on: ubuntu-latest
-    outputs:
-      terraform-outputs: ${{ steps.terraform-outputs.outputs.instance_id }}
     defaults:
      run:
       working-directory: ./terraform/environment
@@ -104,8 +102,11 @@ jobs:
       - name: Get Terraform outputs
         id: terraform-outputs
         run: |
+          set +x
           INSTANCE_ID=$(terraform output -raw instance_id)
           echo "instance_id=${INSTANCE_ID}" >> $GITHUB_OUTPUT
+    outputs:
+      terraform-outputs: ${{ steps.terraform-outputs.outputs.instance_id }}
 
   application:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' && github.event.inputs.LAUNCH_TEMPLATE == 'ubuntu-template'
