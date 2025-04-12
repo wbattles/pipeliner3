@@ -8,6 +8,11 @@ variable "subnet_id" {
     description = "VPC public subnet for the ec2 instance"
 }
 
+variable "launch_template_id" {
+    type = string
+    description = "Launch template id for the ec2 instance"
+}
+
 variable "ami_id" {
   description = "The AMI to use for the EC2 instance"
   type        = string
