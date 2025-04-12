@@ -35,6 +35,8 @@ jobs:
   terraform:
     name: Terraform deploy
     runs-on: ubuntu-latest
+    outputs:
+      terraform-outputs: ${{ steps.terraform-outputs.outputs.instance_id }}
     defaults:
      run:
       working-directory: ./terraform/environment
