@@ -7,7 +7,7 @@ on:
         description: "Name of the EC2 instance"
         required: true
       LAUNCH_TEMPLATE:
-        description: "AMI ID for the EC2 instance"
+        description: "Lauch template for the EC2 instance"
         required: true
         type: choice
         options:
@@ -97,6 +97,9 @@ jobs:
       - name: Terraform apply
         run: |
           terraform apply -auto-approve
+          echo "instance_id=$(terraform output -raw instance_id)" >> $GITHUB_OUTPUT
+    outputs:
+      instance_id: ${{ steps.terraform_apply.outputs.instance_id }}
 
   application:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' && github.event.inputs.LAUNCH_TEMPLATE == 'ubuntu-template'
@@ -132,11 +135,7 @@ jobs:
 
       - name: Retrieve EC2 Instance details
         run: |
-          IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.INSTANCE_NAME }}" --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
-          INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.INSTANCE_NAME }}" --query "Reservations[*].Instances[*].InstanceId" --output text)
-          echo "::add-mask::$IP"
-          echo "INSTANCE_IP=$IP" >> $GITHUB_ENV
-          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+          echo "INSTANCE_ID=${{ needs.terraform.outputs.instance_id }}" >> $GITHUB_ENV
 
       - name: Deploy via SSM
         run: |
