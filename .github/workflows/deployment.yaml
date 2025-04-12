@@ -1,6 +1,18 @@
 name: Terraform Workflow
 
 on:
+  workflow_dispatch:
+    inputs: 
+      INSTANCE_NAME:
+        description: "Name of the EC2 instance"
+        required: true
+      LAUNCH_TEMPLATE:
+        description: "AMI ID for the EC2 instance"
+        required: true
+        type: choice
+        options:
+          - ubuntu-template
+
   push:
     branches:
       - main
@@ -36,13 +48,31 @@ jobs:
         with:
           terraform_version: "1.5.0"
 
-      - name: Terraform variables
+      - name: Manual run
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "TF_VAR_instance_name=${{ github.event.inputs.INSTANCE_NAME }}" >> $GITHUB_ENV
+          case "${{ github.event.inputs.LAUNCH_TEMPLATE }}" in
+            "ubuntu-template")
+              echo "TF_VAR_launch_template_id=${{ secrets.UBUNTU_TEMPLATE }}" >> $GITHUB_ENV
+              ;;
+            )
+              echo "Unknown launch template: ${{ github.event.inputs.LAUNCH_TEMPLATE }}"
+              exit 1
+              ;;
+          esac          
+
+      - name: Auto run
+        if: github.event_name != 'workflow_dispatch'
         run: |
           echo "TF_VAR_instance_name=${{ vars.INSTANCE_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_ami_id=${{ vars.AMI_ID }}" >> $GITHUB_ENV
+
+      - name: Other Terraform variables
+        run: |
           echo "TF_VAR_instance_type=${{ vars.INSTANCE_TYPE }}" >> $GITHUB_ENV
           echo "TF_VAR_vpc_id=${{ secrets.VPC_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_subnet_id=${{ secrets.SUBNET_ID }}" >> $GITHUB_ENV
-          echo "TF_VAR_ami_id=${{ secrets.AMI_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_key_name=${{ secrets.KEY_NAME }}" >> $GITHUB_ENV
 
       - name: Terraform init
@@ -58,6 +88,7 @@ jobs:
           terraform apply -auto-approve
 
   application:
+    if: github.event_name == 'push' || github.event.inputs.LAUNCH_TEMPLATE == 'ubuntu-template'
     name: App deploy
     needs: terraform
     runs-on: ubuntu-latest
@@ -98,7 +129,7 @@ jobs:
 
       - name: Deploy via SSM
         run: |
-          cat ../scripts/deploy.sh > deploy_temp.sh
+          cat ../scripts/setup-app.sh > deploy_temp.sh
           
           ENCODED_SCRIPT=$(base64 -w 0 deploy_temp.sh)
           

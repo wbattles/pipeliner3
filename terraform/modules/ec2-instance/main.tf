@@ -132,15 +132,21 @@ resource "aws_eip" "instance_eip" {
 }
 
 resource "aws_instance" "this" {
-  ami           = var.ami_id
   instance_type = var.instance_type
   subnet_id     = var.subnet_id
-
   vpc_security_group_ids = [aws_security_group.public_traffic.id]
   iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
   key_name = var.key_name
   
-  user_data = <<-EOF
+  dynamic "launch_template" {
+    for_each = var.launch_template_id != null ? [1] : []
+    content {
+      id      = var.launch_template_id
+    }
+  }
+
+  ami       = var.launch_template_id == null ? var.ami_id : null
+  user_data = var.launch_template_id != null ? null: <<-EOF
     #!/bin/bash
 
     sudo apt-get update
