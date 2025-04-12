@@ -102,11 +102,12 @@ jobs:
       - name: Get Terraform outputs
         id: terraform-outputs
         run: |
-          set +x
-          INSTANCE_ID=$(terraform output -raw instance_id)
+          RAW_OUTPUT=$(terraform output -raw instance_id)
+          # Extract just the instance ID (everything before ::debug:: if it exists)
+          INSTANCE_ID=$(echo "$RAW_OUTPUT" | cut -d':' -f1)
           echo "instance_id=${INSTANCE_ID}" >> $GITHUB_OUTPUT
     outputs:
-      terraform-outputs: ${{ steps.terraform-outputs.outputs.instance_id }}
+      instance_id: ${{ steps.terraform-outputs.outputs.instance_id }}
 
   application:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' && github.event.inputs.LAUNCH_TEMPLATE == 'ubuntu-template'
@@ -142,9 +143,9 @@ jobs:
 
       - name: Retrieve EC2 Instance details
         run: |
-          echo "INSTANCE_ID=${{ needs.terraform.outputs.terraform-outputs.instance_id }}" >> $GITHUB_ENV
-          echo "Using EC2 instance: ${{ needs.terraform.outputs.terraform-outputs.instance_id }}"
-
+          echo "INSTANCE_ID=${{ needs.terraform.outputs.instance_id }}" >> $GITHUB_ENV
+          echo "Using EC2 instance: ${{ needs.terraform.outputs.instance_id }}"
+          
       - name: Deploy via SSM
         run: |
           cat ../scripts/setup-app.sh > deploy_temp.sh
