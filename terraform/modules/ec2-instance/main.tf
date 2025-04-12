@@ -145,7 +145,7 @@ resource "aws_instance" "this" {
     }
   }
 
-  ami       = var.launch_template_id == null ? var.ami_id : null
+  ami       = var.launch_template_id != null ? null: var.ami_id
   user_data = var.launch_template_id != null ? null: <<-EOF
     #!/bin/bash
 

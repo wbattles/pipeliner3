@@ -11,7 +11,12 @@ on:
         required: true
         type: choice
         options:
+          # ubuntu server 24.04
           - ubuntu-template
+          # windows server 2025 base
+          - windows-template
+          # amazon linux 2023
+          - amazon-linux-template
 
   push:
     branches:
@@ -56,7 +61,13 @@ jobs:
             "ubuntu-template")
               echo "TF_VAR_launch_template_id=${{ secrets.UBUNTU_TEMPLATE }}" >> $GITHUB_ENV
               ;;
-            )
+            "windows-template")
+              echo "TF_VAR_launch_template_id=${{ secrets.WINDOWS_TEMPLATE }}" >> $GITHUB_ENV
+              ;;
+            "amazon-linux-template")
+              echo "TF_VAR_launch_template_id=${{ secrets.AMAZON_LINUX_TEMPLATE }}" >> $GITHUB_ENV
+              ;;
+            *)
               echo "Unknown launch template: ${{ github.event.inputs.LAUNCH_TEMPLATE }}"
               exit 1
               ;;
