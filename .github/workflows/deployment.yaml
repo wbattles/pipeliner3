@@ -158,8 +158,8 @@ jobs:
           COMMANDS_JSON=$(jq -n \
             --arg script "$ENCODED_SCRIPT" \
             --arg region "us-east-1" \
-            --arg account "$AWS_ACCOUNT_ID" \
-            --arg repo "$ECR_REPOSITORY" \
+            --arg account ${{ secrets.AWS_ACCOUNT_ID }} \
+            --arg repo ${{ secrets.ECR_REPOSITORY }} \
             '{
               commands: [
                 "echo \($script) | base64 -d > /home/ubuntu/deploy.sh",
@@ -172,7 +172,8 @@ jobs:
             }')
 
           aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
+            --instance-ids ${{ env.INSTANCE_ID }} \
+            --document-name "AWS-RunShellScript" \
             --document-name "AWS-RunShellScript" \
             --parameters "$COMMANDS_JSON" \
             --region us-east-1 \
