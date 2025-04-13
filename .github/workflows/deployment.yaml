@@ -155,17 +155,25 @@ jobs:
           
           ENCODED_SCRIPT=$(base64 -w 0 deploy_temp.sh)
           
-          aws ssm send-command \
-            --instance-ids ${{ env.INSTANCE_ID }} \
-            --document-name "AWS-RunShellScript" \
-            --parameters "{
-              \"commands\":[
-                \"echo $ENCODED_SCRIPT | base64 -d > /home/ubuntu/deploy.sh\",
-                \"chmod +x /home/ubuntu/deploy.sh\",
-                \"export AWS_DEFAULT_REGION=us-east-1\",
-                \"export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}\",
-                \"export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}\",
-                \"bash /home/ubuntu/deploy.sh\"
+          COMMANDS_JSON=$(jq -n \
+            --arg script "$ENCODED_SCRIPT" \
+            --arg region "us-east-1" \
+            --arg account "$AWS_ACCOUNT_ID" \
+            --arg repo "$ECR_REPOSITORY" \
+            '{
+              commands: [
+                "echo \($script) | base64 -d > /home/ubuntu/deploy.sh",
+                "chmod +x /home/ubuntu/deploy.sh",
+                "export AWS_DEFAULT_REGION=\($region)",
+                "export AWS_ACCOUNT_ID=\($account)",
+                "export ECR_REPOSITORY=\($repo)",
+                "bash /home/ubuntu/deploy.sh"
               ]
-            }" \
+            }')
+
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "$COMMANDS_JSON" \
+            --region us-east-1 \
             --output text
