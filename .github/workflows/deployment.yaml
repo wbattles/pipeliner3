@@ -50,8 +50,9 @@ jobs:
           aws-region: us-east-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
+          terraform_wrapper: false
           terraform_version: "1.5.0"
 
       - name: Manual run
@@ -102,9 +103,7 @@ jobs:
       - name: Get Terraform outputs
         id: terraform-outputs
         run: |
-          RAW_OUTPUT=$(terraform output instance_id)
-          # Extract just the instance ID (everything before ::debug:: if it exists)
-          INSTANCE_ID=$(echo "$RAW_OUTPUT" | cut -d':' -f1)
+          INSTANCE_ID=$(terraform output -raw instance_id)
           echo "instance_id=${INSTANCE_ID}" >> $GITHUB_OUTPUT
     outputs:
       instance_id: ${{ steps.terraform-outputs.outputs.instance_id }}
@@ -145,7 +144,7 @@ jobs:
         run: |
           echo "INSTANCE_ID=${{ needs.terraform.outputs.instance_id }}" >> $GITHUB_ENV
           echo "Using EC2 instance: ${{ needs.terraform.outputs.instance_id }}"
-
+          
       - name: Deploy via SSM
         run: |
           cat ../scripts/setup-app.sh > deploy_temp.sh
