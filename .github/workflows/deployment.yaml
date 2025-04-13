@@ -100,11 +100,18 @@ jobs:
         run: |
           terraform apply -auto-approve
       
+<<<<<<< HEAD
       - name: Get Terraform outputs
         id: terraform-outputs
         run: |
           INSTANCE_ID=$(terraform output -raw instance_id)
           echo "instance_id=${INSTANCE_ID}" >> $GITHUB_OUTPUT
+=======
+      - name: Terraform apply
+        run: |
+          terraform apply -auto-approve
+          echo "instance_id=$(terraform output -raw instance_id)" >> $GITHUB_OUTPUT
+>>>>>>> 389a7abc9b37afc6409f6b1c2fc33e5943803c78
     outputs:
       instance_id: ${{ steps.terraform-outputs.outputs.instance_id }}
 
@@ -144,7 +151,16 @@ jobs:
         run: |
           echo "INSTANCE_ID=${{ needs.terraform.outputs.instance_id }}" >> $GITHUB_ENV
           echo "Using EC2 instance: ${{ needs.terraform.outputs.instance_id }}"
+<<<<<<< HEAD
           
+=======
+
+      - name: Wait for EC2 starutup
+        run: |
+          aws ec2 wait instance-status-ok --instance-ids ${{ env.INSTANCE_ID }}
+          echo "Instance is up and running."
+
+>>>>>>> 389a7abc9b37afc6409f6b1c2fc33e5943803c78
       - name: Deploy via SSM
         run: |
           cat ../scripts/setup-app.sh > deploy_temp.sh
