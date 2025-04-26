@@ -147,7 +147,7 @@ jobs:
 
       - name: Deploy via SSM
         run: |
-          cat ../scripts/setup-app.sh > deploy_temp.shI
+          cat ../scripts/setup-app.sh > deploy_temp.sh
           
           ENCODED_SCRIPT=$(base64 -w 0 deploy_temp.sh)
           
