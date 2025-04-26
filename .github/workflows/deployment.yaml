@@ -97,6 +97,7 @@ jobs:
           terraform plan
 
       - name: Terraform apply
+        id: terraform-outputs
         run: |
           terraform apply -auto-approve
           echo "instance_id=$(terraform output -raw instance_id)" >> $GITHUB_OUTPUT
