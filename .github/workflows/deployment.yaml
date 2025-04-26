@@ -99,10 +99,6 @@ jobs:
       - name: Terraform apply
         run: |
           terraform apply -auto-approve
-      
-      - name: Terraform apply
-        run: |
-          terraform apply -auto-approve
           echo "instance_id=$(terraform output -raw instance_id)" >> $GITHUB_OUTPUT
     outputs:
       instance_id: ${{ steps.terraform-outputs.outputs.instance_id }}
@@ -151,30 +147,21 @@ jobs:
 
       - name: Deploy via SSM
         run: |
-          cat ../scripts/setup-app.sh > deploy_temp.sh
+          cat ../scripts/setup-app.sh > deploy_temp.shI
           
           ENCODED_SCRIPT=$(base64 -w 0 deploy_temp.sh)
           
-          COMMANDS_JSON=$(jq -n \
-            --arg script "$ENCODED_SCRIPT" \
-            --arg region "us-east-1" \
-            --arg account ${{ secrets.AWS_ACCOUNT_ID }} \
-            --arg repo ${{ secrets.ECR_REPOSITORY }} \
-            '{
-              commands: [
-                "echo \($script) | base64 -d > /home/ubuntu/deploy.sh",
-                "chmod +x /home/ubuntu/deploy.sh",
-                "export AWS_DEFAULT_REGION=\($region)",
-                "export AWS_ACCOUNT_ID=\($account)",
-                "export ECR_REPOSITORY=\($repo)",
-                "bash /home/ubuntu/deploy.sh"
-              ]
-            }')
-
           aws ssm send-command \
             --instance-ids ${{ env.INSTANCE_ID }} \
             --document-name "AWS-RunShellScript" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "$COMMANDS_JSON" \
-            --region us-east-1 \
+            --parameters "{
+              \"commands\":[
+                \"echo $ENCODED_SCRIPT | base64 -d > /home/ubuntu/deploy.sh\",
+                \"chmod +x /home/ubuntu/deploy.sh\",
+                \"export AWS_DEFAULT_REGION=us-east-1\",
+                \"export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}\",
+                \"export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}\",
+                \"bash /home/ubuntu/deploy.sh\"
+              ]
+            }" \
             --output text
