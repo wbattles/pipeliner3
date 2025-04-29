@@ -97,15 +97,12 @@ jobs:
           terraform plan
 
       - name: Terraform apply
-        run: |
-          terraform apply -auto-approve
-      
-      - name: Terraform apply
+        id: terraform-outputs
         run: |
           terraform apply -auto-approve
           echo "instance_id=$(terraform output -raw instance_id)" >> $GITHUB_OUTPUT
     outputs:
-      instance_id: ${{ steps.terraform_apply.outputs.instance_id }}
+      instance_id: ${{ steps.terraform-outputs.outputs.instance_id }}
 
   application:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' && github.event.inputs.LAUNCH_TEMPLATE == 'ubuntu-template'
