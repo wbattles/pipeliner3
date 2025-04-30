@@ -67,7 +67,7 @@ def create_app():
     table = dynamodb_resource.Table(table_name)
     db_wrapper = DynamoDBWrapper(table)
 
-    test_secret = get_secret("API_KEY", region_name)
+    test_secret = get_secret("TestSecret", region_name)
     API_KEY = json.loads(test_secret)["API_KEY"]
 
     @app.before_request
