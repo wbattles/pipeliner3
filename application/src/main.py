@@ -67,15 +67,15 @@ def create_app():
     table = dynamodb_resource.Table(table_name)
     db_wrapper = DynamoDBWrapper(table)
 
-    test_secret = get_secret("TestSecret", region_name)
-    API_KEY = json.loads(test_secret)["API_KEY"]
+    # test_secret = get_secret("TestSecret", region_name)
+    # API_KEY = json.loads(test_secret)["API_KEY"]
 
-    @app.before_request
-    def verify_api_key():
-        api_key = request.headers.get('x-api-key')
-        if api_key != API_KEY:
-            logger.warning("Invalid API key provided.")
-            return jsonify({"error": "Invalid API key"}), 403
+    # @app.before_request
+    # def verify_api_key():
+    #     api_key = request.headers.get('x-api-key')
+    #     if api_key != API_KEY:
+    #         logger.warning("Invalid API key provided.")
+    #         return jsonify({"error": "Invalid API key"}), 403
 
     @app.route('/')
     def home():
