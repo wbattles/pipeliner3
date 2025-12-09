@@ -46,9 +46,9 @@ resource "aws_eks_node_group" "pipeliner_node_group" {
   disk_size     = 30
 
   scaling_config {
-    desired_size = 2
+    desired_size = 1
     min_size     = 1
-    max_size     = 4
+    max_size     = 1
   }
 }
 

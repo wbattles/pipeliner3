@@ -12,7 +12,7 @@ terraform {
 resource "aws_security_group" "public_traffic" {
   name        = "EC2-Public-SecGrp"
   description = "Allow inbound traffic and all outbound traffic"
-  vpc_id      = data.aws_vpc.main.id
+  vpc_id      = var.vpc_id
 
   tags = {
     Name = "EC2-Public-SecGrp"
