@@ -10,9 +10,9 @@ terraform {
 }
 
 resource "aws_security_group" "public_traffic" {
-  name        = "EC2-Public-SecGrp"
+  name_prefix = "EC2-Public-SecGrp-"
   description = "Allow inbound traffic and all outbound traffic"
-  vpc_id      = data.aws_vpc.main.id
+  vpc_id      = var.vpc_id
 
   tags = {
     Name = "EC2-Public-SecGrp"
@@ -65,7 +65,7 @@ resource "aws_iam_role" "ec2_role" {
 }
 
 resource "aws_iam_policy" "ec2_access_policy" {
-  name = "ec2-access-policy"
+  name_prefix = "ec2-access-policy-"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -134,7 +134,7 @@ resource "aws_iam_role_policy_attachment" "attach_policy" {
 }
   
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
-  name = "ec2_instance_profile"
+  name_prefix = "ec2_instance_profile-"
   role = aws_iam_role.ec2_role.name
 }
 

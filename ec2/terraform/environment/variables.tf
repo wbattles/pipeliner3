@@ -11,6 +11,7 @@ variable "subnet_id" {
 variable "launch_template_id" {
     type = string
     description = "Launch template id for the ec2 instance"
+    default = null
 }
 
 variable "ami_id" {
@@ -21,6 +22,7 @@ variable "ami_id" {
 variable "instance_name" {
     type        =  string
     description = "Name for the ec2 instance"
+    default = "instance"
 }
 
 variable "instance_type" {

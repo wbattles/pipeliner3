@@ -1,4 +1,4 @@
-name: Terraform Workflow
+name: ec2 terraform workflow
 
 on:
   workflow_dispatch:
@@ -23,9 +23,8 @@ on:
       - main
       - branch-test
     paths:
-      - "terraform/**"
-      - "application/**"
-      - ".github/workflows/**"
+      - "ec2/**"
+      - ".github/workflows/ec2-deployment.yaml"
 
 permissions:
   id-token: write
@@ -33,11 +32,11 @@ permissions:
   
 jobs:
   terraform:
-    name: Terraform deploy
+    name: terraform deploy
     runs-on: ubuntu-latest
     defaults:
      run:
-      working-directory: ./terraform/environment
+      working-directory: ./ec2/terraform/environment
 
     steps:
       - name: Checkout code
@@ -49,7 +48,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
 
-      - name: Setup Terraform
+      - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
@@ -81,7 +80,7 @@ jobs:
           echo "TF_VAR_instance_name=${{ vars.INSTANCE_NAME }}" >> $GITHUB_ENV
           echo "TF_VAR_ami_id=${{ vars.AMI_ID }}" >> $GITHUB_ENV
 
-      - name: Other Terraform variables
+      - name: Other terraform variables
         run: |
           echo "TF_VAR_instance_type=${{ vars.INSTANCE_TYPE }}" >> $GITHUB_ENV
           echo "TF_VAR_vpc_id=${{ secrets.VPC_ID }}" >> $GITHUB_ENV
@@ -111,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
      run:
-      working-directory: ./application
+      working-directory: ./ec2/application
 
     steps:
       - name: Checkout code
