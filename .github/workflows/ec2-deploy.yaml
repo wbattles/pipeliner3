@@ -1,23 +1,6 @@
 name: ec2 terraform workflow
 
 on:
-  workflow_dispatch:
-    inputs: 
-      INSTANCE_NAME:
-        description: "Name of the EC2 instance"
-        required: true
-      LAUNCH_TEMPLATE:
-        description: "Lauch template for the EC2 instance"
-        required: true
-        type: choice
-        options:
-          # ubuntu server 24.04
-          - ubuntu-template
-          # windows server 2025 base
-          - windows-template
-          # amazon linux 2023
-          - amazon-linux-template
-
   push:
     branches:
       - main
@@ -54,34 +37,10 @@ jobs:
           terraform_wrapper: false
           terraform_version: "1.5.0"
 
-      - name: Manual run
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          echo "TF_VAR_instance_name=${{ github.event.inputs.INSTANCE_NAME }}" >> $GITHUB_ENV
-          case "${{ github.event.inputs.LAUNCH_TEMPLATE }}" in
-            "ubuntu-template")
-              echo "TF_VAR_launch_template_id=${{ secrets.UBUNTU_TEMPLATE }}" >> $GITHUB_ENV
-              ;;
-            "windows-template")
-              echo "TF_VAR_launch_template_id=${{ secrets.WINDOWS_TEMPLATE }}" >> $GITHUB_ENV
-              ;;
-            "amazon-linux-template")
-              echo "TF_VAR_launch_template_id=${{ secrets.AMAZON_LINUX_TEMPLATE }}" >> $GITHUB_ENV
-              ;;
-            *)
-              echo "Unknown launch template: ${{ github.event.inputs.LAUNCH_TEMPLATE }}"
-              exit 1
-              ;;
-          esac          
-
-      - name: Auto run
-        if: github.event_name != 'workflow_dispatch'
+      - name: Terraform variables
         run: |
           echo "TF_VAR_instance_name=${{ vars.INSTANCE_NAME }}" >> $GITHUB_ENV
           echo "TF_VAR_ami_id=${{ vars.AMI_ID }}" >> $GITHUB_ENV
-
-      - name: Other terraform variables
-        run: |
           echo "TF_VAR_instance_type=${{ vars.INSTANCE_TYPE }}" >> $GITHUB_ENV
           echo "TF_VAR_vpc_id=${{ secrets.VPC_ID }}" >> $GITHUB_ENV
           echo "TF_VAR_subnet_id=${{ secrets.SUBNET_ID }}" >> $GITHUB_ENV

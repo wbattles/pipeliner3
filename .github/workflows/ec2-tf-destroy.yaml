@@ -46,6 +46,15 @@ jobs:
         run: |
           terraform init
 
+      - name: Terraform variables
+        run: |
+          echo "TF_VAR_instance_name=${{ vars.INSTANCE_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_ami_id=${{ vars.AMI_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_instance_type=${{ vars.INSTANCE_TYPE }}" >> $GITHUB_ENV
+          echo "TF_VAR_vpc_id=${{ secrets.VPC_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_subnet_id=${{ secrets.SUBNET_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_key_name=${{ secrets.KEY_NAME }}" >> $GITHUB_ENV
+          
       - name: Terraform destroy
         run: |
           terraform destroy -auto-approve
