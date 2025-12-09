@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
      run:
-      working-directory: ./eks/terraform/environment
+      working-directory: ./eks/terraform
 
     steps:
       - name: Checkout code
